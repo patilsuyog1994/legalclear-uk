@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: #0f6e56;
+  --color-primary-dark: #0a5242;
+  --color-primary-light: #e8f4f0;
+  --color-off-white: #f8f7f3;
+  --font-heading: var(--font-playfair);
+  --font-body: var(--font-dm-sans);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #f8f7f3;
+  color: #1c1c1c;
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-playfair), "Playfair Display", serif;
+}
+
+/* ─── Mobile Responsive ─────────────────────────────────────── */
+@media (max-width: 700px) {
+  /* Navbar: reduce side padding */
+  .lc-nav {
+    padding: 0 16px !important;
+  }
+
+  /* Page main: reduce vertical and horizontal padding */
+  .lc-page-content {
+    padding: 28px 16px 60px !important;
+  }
+
+  /* Input/result cards: reduce padding */
+  .lc-card {
+    padding: 20px 16px !important;
+  }
+  .lc-result-content {
+    padding: 24px 16px !important;
+  }
+
+  /* Result tabs: wrap so they don't squish */
+  .lc-tabs {
+    flex-wrap: wrap !important;
+    border-radius: 12px 12px 0 0 !important;
+  }
+
+  /* Dashboard: stack sidebar above detail panel */
+  .lc-dashboard-layout {
+    flex-direction: column !important;
+    padding: 24px 16px 60px !important;
+  }
+  .lc-sidebar {
+    width: 100% !important;
+    flex-shrink: unset !important;
+  }
+}
