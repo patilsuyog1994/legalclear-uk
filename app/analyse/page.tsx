@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 /* ─── Constants ──────────────────────────────────────────────── */
-const EXAMPLE_CHIPS = [
+const DEFAULT_EXAMPLES = [
   "My landlord hasn't fixed the heating for 3 weeks",
   "I received a Section 21 notice to leave",
   "My employer hasn't paid me for 2 months",
@@ -14,6 +14,105 @@ const EXAMPLE_CHIPS = [
   "A debt collector is threatening to visit my home",
   "My employer fired me without any warning",
 ];
+
+const AREA_EXAMPLES: Record<string, string[]> = {
+  "Housing": [
+    "I received a Section 21 notice to leave my flat",
+    "My landlord hasn't fixed the heating for 3 weeks",
+    "My landlord is withholding my deposit without reason",
+    "My landlord entered my property without permission",
+    "I've been locked out of my flat by my landlord",
+    "I received an eviction notice but I'm on a fixed-term tenancy",
+  ],
+  "Employment": [
+    "My employer fired me without any warning",
+    "My employer hasn't paid me for 2 months",
+    "I was made redundant without being given any notice",
+    "My employer changed my contract without my agreement",
+    "I'm being bullied at work and HR isn't helping",
+    "I was passed over for promotion due to my age",
+  ],
+  "Debt & Bailiffs": [
+    "I got a county court judgment (CCJ) in the post",
+    "A debt collector is threatening to visit my home",
+    "Bailiffs came to my door for a debt I don't recognise",
+    "I received a statutory demand through the post",
+    "A debt collector is calling me multiple times a day",
+    "I have multiple debts and don't know what to pay first",
+  ],
+  "Consumer Rights": [
+    "A retailer is refusing to refund a faulty product",
+    "I paid for a service that was never delivered",
+    "A company charged me twice for the same order",
+    "I bought a second-hand car that had hidden faults",
+    "An online seller won't honour their return policy",
+    "I was scammed by a fake online shop",
+  ],
+  "Fines": [
+    "I received a parking charge notice from a private company",
+    "I got a council tax summons in the post",
+    "I received a fixed penalty notice I disagree with",
+    "I got a speeding fine but wasn't driving the car",
+    "I received a demand from HMRC for unpaid tax",
+    "A TV licensing letter is demanding payment",
+  ],
+  "Neighbour Disputes": [
+    "My neighbour's tree is damaging my property",
+    "My neighbour plays loud music every night",
+    "My neighbour built a fence on my land",
+    "My neighbour is blocking my right of way",
+    "My neighbour's CCTV is pointing at my garden",
+    "I received a noise complaint letter from my council",
+  ],
+  "Benefits & Council Tax": [
+    "My Universal Credit payment has been reduced with no explanation",
+    "My benefits have been stopped without explanation",
+    "I received a council tax bill I can't afford",
+    "I've been told I was overpaid benefits and must repay",
+    "I want to appeal a PIP decision",
+    "My housing benefit claim has been refused",
+  ],
+  "Small Claims": [
+    "A builder did poor work and won't refund my deposit",
+    "Someone owes me money and is refusing to pay",
+    "I want to take a company to small claims court",
+    "A tradesperson damaged my property during work",
+    "A landlord owes me money after I moved out",
+    "I won a small claims case but haven't been paid",
+  ],
+  "Family Law": [
+    "My ex-partner won't let me see my children",
+    "I want to understand my rights in a divorce",
+    "I received a court order from my ex-partner",
+    "My ex is taking me back to court over maintenance",
+    "I need help understanding a child arrangements order",
+    "I've been served with a non-molestation order",
+  ],
+  "Immigration": [
+    "My visa application has been refused",
+    "I received a letter from the Home Office about my status",
+    "My leave to remain is running out soon",
+    "My employer is questioning my right to work documents",
+    "I was refused entry at the border",
+    "I want to apply for settled status",
+  ],
+  "Business & Contracts": [
+    "A client refuses to pay an invoice",
+    "I signed a contract but want to get out of it",
+    "A supplier didn't deliver what was agreed",
+    "I received a cease and desist letter",
+    "A customer is threatening legal action against my business",
+    "My business partner wants to dissolve our partnership",
+  ],
+  "Criminal Rights": [
+    "I was arrested and want to know my rights",
+    "Police searched my home — was this legal?",
+    "I received a caution and want to know its implications",
+    "Police are investigating me but I haven't been charged",
+    "I've been given a community order I don't understand",
+    "I received a court summons for a criminal matter",
+  ],
+};
 
 const JURISDICTIONS = ["England and Wales", "Scotland", "Northern Ireland"];
 
@@ -172,7 +271,7 @@ export default function AnalysePage() {
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
   const [result, setResult]         = useState<AnalysisResult | null>(null);
-  const [resultTab, setResultTab]   = useState<"summary" | "steps" | "letter">("summary");
+  const [letterOpen, setLetterOpen] = useState(false);
   const [copied, setCopied]         = useState(false);
   const [user, setUser]             = useState<{ id: string } | null>(null);
   const [saving, setSaving]         = useState(false);
@@ -195,10 +294,19 @@ export default function AnalysePage() {
   const resultsRef    = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const [activeArea, setActiveArea] = useState<string | null>(null);
+
   /* Auth check */
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
+
+  /* Read ?area= query param and pre-select area examples */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const area = params.get("area");
+    if (area && AREA_EXAMPLES[area]) setActiveArea(area);
   }, []);
 
   /* Mobile detection */
@@ -249,7 +357,7 @@ export default function AnalysePage() {
       }
 
       setResult(data);
-      setResultTab("summary");
+      setLetterOpen(false);
       setSaved(false);
       setSaveError(null);
       setFeedback(null);
@@ -827,22 +935,40 @@ export default function AnalysePage() {
               </div>
 
               {/* Example chips */}
-              {inputTab === "describe" && (
-                <div style={{ marginBottom: "20px" }}>
-                  <p style={{ fontSize: "13px", color: "#888", marginBottom: "10px", fontWeight: 500 }}>Try an example:</p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                    {EXAMPLE_CHIPS.map((chip) => (
-                      <button
-                        key={chip}
-                        onClick={() => handleChipClick(chip)}
-                        style={{ padding: "7px 14px", borderRadius: "20px", border: "1px solid #c8e6dd", backgroundColor: text === chip ? "#0f6e56" : "#e8f4f0", color: text === chip ? "#fff" : "#0f6e56", fontSize: "13px", fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
-                      >
-                        {chip}
-                      </button>
-                    ))}
+              {inputTab === "describe" && (() => {
+                const chips = activeArea ? AREA_EXAMPLES[activeArea] : DEFAULT_EXAMPLES;
+                return (
+                  <div style={{ marginBottom: "20px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
+                      <p style={{ fontSize: "13px", color: "#888", fontWeight: 500, margin: 0 }}>Try an example:</p>
+                      {activeArea && (
+                        <span style={{ fontSize: "12px", fontWeight: 600, padding: "2px 10px", borderRadius: "20px", backgroundColor: "#e8f4f0", color: "#0f6e56" }}>
+                          {activeArea}
+                        </span>
+                      )}
+                      {activeArea && (
+                        <button
+                          onClick={() => setActiveArea(null)}
+                          style={{ fontSize: "11px", color: "#aaa", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, textDecoration: "underline" }}
+                        >
+                          show all
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {chips.map((chip) => (
+                        <button
+                          key={chip}
+                          onClick={() => handleChipClick(chip)}
+                          style={{ padding: "7px 14px", borderRadius: "20px", border: "1px solid #c8e6dd", backgroundColor: text === chip ? "#0f6e56" : "#e8f4f0", color: text === chip ? "#fff" : "#0f6e56", fontSize: "13px", fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+                        >
+                          {chip}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Textarea */}
               {inputTab === "describe" && (
@@ -915,101 +1041,128 @@ export default function AnalysePage() {
             {result && (
               <div ref={resultsRef}>
 
-                {/* Result tabs */}
-                <div className="lc-tabs" style={{ display: "flex", borderRadius: "12px 12px 0 0", overflow: "hidden", border: "1px solid #e5e0d8", borderBottom: "none" }}>
-                  {(["summary", "steps", "letter"] as const).map((tab) => {
-                    const labels = { summary: "Summary & Rights", steps: "What To Do", letter: "Response Letter" };
-                    return (
-                      <button
-                        key={tab}
-                        onClick={() => setResultTab(tab)}
-                        style={{ flex: 1, padding: "14px 20px", fontSize: "14px", fontWeight: 600, cursor: "pointer", border: "none", borderBottom: resultTab === tab ? "3px solid #0f6e56" : "3px solid transparent", backgroundColor: resultTab === tab ? "#fff" : "#f8f7f3", color: resultTab === tab ? "#0f6e56" : "#666", transition: "all 0.15s", fontFamily: "inherit" }}
-                      >
-                        {labels[tab]}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Tab content */}
+                {/* ── Single-page results ── */}
                 <div
                   className="lc-result-content"
-                  style={{ backgroundColor: "#fff", border: "1px solid #e5e0d8", borderTop: "none", borderRadius: "0 0 16px 16px", padding: "36px 40px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
+                  style={{ backgroundColor: "#fff", border: "1px solid #e5e0d8", borderRadius: "16px", padding: "36px 40px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
                 >
-                  {/* Summary & Rights */}
-                  {resultTab === "summary" && (
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
-                        <span style={{ display: "inline-block", padding: "4px 14px", borderRadius: "20px", fontSize: "13px", fontWeight: 600, backgroundColor: "#e8f4f0", color: "#0f6e56", border: "1px solid #c8e6dd" }}>
-                          {result.lawType}
-                        </span>
-                        <UrgencyBadge level={result.urgencyLevel} />
-                      </div>
-                      {result.urgencyReason && (
-                        <p style={{ fontSize: "14px", color: "#666", marginBottom: "20px", fontStyle: "italic" }}>{result.urgencyReason}</p>
-                      )}
-                      <h2 style={{ fontFamily: "var(--font-playfair), 'Playfair Display', serif", fontSize: "26px", fontWeight: 700, color: "#1c1c1c", marginBottom: "20px", lineHeight: 1.3 }}>
-                        {result.summaryTitle}
-                      </h2>
-                      <div style={{ marginBottom: "28px" }}>
-                        {result.explanation.split("\n\n").filter(Boolean).map((para, i) => (
-                          <p key={i} style={{ fontSize: "15px", lineHeight: 1.75, color: "#333", marginBottom: "14px" }}>{para}</p>
+                  {/* Badges */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
+                    <span style={{ display: "inline-block", padding: "4px 14px", borderRadius: "20px", fontSize: "13px", fontWeight: 600, backgroundColor: "#e8f4f0", color: "#0f6e56", border: "1px solid #c8e6dd" }}>
+                      {result.lawType}
+                    </span>
+                    <UrgencyBadge level={result.urgencyLevel} />
+                  </div>
+
+                  {result.urgencyReason && (
+                    <p style={{ fontSize: "14px", color: "#666", marginBottom: "20px", fontStyle: "italic" }}>{result.urgencyReason}</p>
+                  )}
+
+                  {/* Title */}
+                  <h2 style={{ fontFamily: "var(--font-playfair), 'Playfair Display', serif", fontSize: "26px", fontWeight: 700, color: "#1c1c1c", marginBottom: "20px", lineHeight: 1.3 }}>
+                    {result.summaryTitle}
+                  </h2>
+
+                  {/* Explanation */}
+                  <div style={{ marginBottom: "32px" }}>
+                    {result.explanation.split("\n\n").filter(Boolean).map((para, i) => (
+                      <p key={i} style={{ fontSize: "15px", lineHeight: 1.75, color: "#333", marginBottom: "14px" }}>{para}</p>
+                    ))}
+                  </div>
+
+                  {/* Your Rights */}
+                  {result.rights.length > 0 && (
+                    <div style={{ marginBottom: "36px" }}>
+                      <h3 style={{ fontFamily: "var(--font-playfair), 'Playfair Display', serif", fontSize: "20px", fontWeight: 700, color: "#1c1c1c", marginBottom: "16px" }}>
+                        Your Rights
+                      </h3>
+                      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {result.rights.map((right, i) => (
+                          <li key={i} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                            <span style={{ flexShrink: 0, width: "22px", height: "22px", borderRadius: "50%", backgroundColor: "#e8f4f0", color: "#0f6e56", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: 700, marginTop: "1px" }}>✓</span>
+                            <span style={{ fontSize: "15px", lineHeight: 1.6, color: "#333" }}>{right}</span>
+                          </li>
                         ))}
-                      </div>
-                      {result.rights.length > 0 && (
-                        <div>
-                          <h3 style={{ fontFamily: "var(--font-playfair), 'Playfair Display', serif", fontSize: "18px", fontWeight: 700, color: "#1c1c1c", marginBottom: "14px" }}>Your Rights</h3>
-                          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
-                            {result.rights.map((right, i) => (
-                              <li key={i} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                                <span style={{ flexShrink: 0, width: "22px", height: "22px", borderRadius: "50%", backgroundColor: "#e8f4f0", color: "#0f6e56", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: 700, marginTop: "1px" }}>✓</span>
-                                <span style={{ fontSize: "15px", lineHeight: 1.6, color: "#333" }}>{right}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      </ul>
                     </div>
                   )}
+
+                  {/* Divider */}
+                  <div style={{ height: "1px", backgroundColor: "#f0ede6", margin: "0 0 36px" }} />
 
                   {/* What To Do */}
-                  {resultTab === "steps" && (
-                    <div>
-                      <h2 style={{ fontFamily: "var(--font-playfair), 'Playfair Display', serif", fontSize: "24px", fontWeight: 700, color: "#1c1c1c", marginBottom: "28px" }}>Steps to Take</h2>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                        {result.steps.map((step, i) => (
-                          <div key={i} style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-                            <div style={{ flexShrink: 0, width: "36px", height: "36px", borderRadius: "50%", backgroundColor: "#0f6e56", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", fontWeight: 700 }}>{i + 1}</div>
-                            <div style={{ flex: 1 }}>
-                              <h4 style={{ fontSize: "16px", fontWeight: 700, color: "#1c1c1c", marginBottom: "6px" }}>{step.title}</h4>
-                              <p style={{ fontSize: "14px", lineHeight: 1.7, color: "#555" }}>{step.detail}</p>
-                            </div>
+                  <div style={{ marginBottom: "36px" }}>
+                    <h3 style={{ fontFamily: "var(--font-playfair), 'Playfair Display', serif", fontSize: "20px", fontWeight: 700, color: "#1c1c1c", marginBottom: "20px" }}>
+                      What To Do
+                    </h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                      {result.steps.map((step, i) => (
+                        <div key={i} style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
+                          <div style={{ flexShrink: 0, width: "36px", height: "36px", borderRadius: "50%", backgroundColor: "#0f6e56", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", fontWeight: 700 }}>{i + 1}</div>
+                          <div style={{ flex: 1 }}>
+                            <h4 style={{ fontSize: "16px", fontWeight: 700, color: "#1c1c1c", marginBottom: "6px" }}>{step.title}</h4>
+                            <p style={{ fontSize: "14px", lineHeight: 1.7, color: "#555" }}>{step.detail}</p>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
 
-                  {/* Response Letter */}
-                  {resultTab === "letter" && (
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-                        <h2 style={{ fontFamily: "var(--font-playfair), 'Playfair Display', serif", fontSize: "24px", fontWeight: 700, color: "#1c1c1c" }}>Draft Response Letter</h2>
-                        <button
-                          onClick={handleCopy}
-                          style={{ padding: "9px 20px", borderRadius: "8px", border: "1px solid #0f6e56", backgroundColor: copied ? "#0f6e56" : "#fff", color: copied ? "#fff" : "#0f6e56", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s" }}
-                        >
-                          {copied ? "✓ Copied!" : "Copy to clipboard"}
-                        </button>
+                  {/* Divider */}
+                  <div style={{ height: "1px", backgroundColor: "#f0ede6", margin: "0 0 28px" }} />
+
+                  {/* Response Letter — button + expandable */}
+                  <div>
+                    <button
+                      onClick={() => setLetterOpen(v => !v)}
+                      style={{
+                        width: "100%",
+                        padding: "14px 24px",
+                        borderRadius: "10px",
+                        border: "1px solid #0f6e56",
+                        backgroundColor: letterOpen ? "#0f6e56" : "#fff",
+                        color: letterOpen ? "#fff" : "#0f6e56",
+                        fontSize: "15px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                      </svg>
+                      {letterOpen ? "Hide Response Letter" : "View Draft Response Letter"}
+                      <span style={{ marginLeft: "auto", fontSize: "18px", lineHeight: 1 }}>{letterOpen ? "▲" : "▼"}</span>
+                    </button>
+
+                    {letterOpen && (
+                      <div style={{ marginTop: "16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                          <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>
+                            Review and personalise before sending. Fill in any [brackets] with your own details.
+                          </p>
+                          <button
+                            onClick={handleCopy}
+                            style={{ flexShrink: 0, marginLeft: "16px", padding: "8px 18px", borderRadius: "8px", border: "1px solid #0f6e56", backgroundColor: copied ? "#0f6e56" : "#fff", color: copied ? "#fff" : "#0f6e56", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", whiteSpace: "nowrap" }}
+                          >
+                            {copied ? "✓ Copied!" : "Copy"}
+                          </button>
+                        </div>
+                        <pre style={{ backgroundColor: "#f8f7f3", border: "1px solid #e5e0d8", borderRadius: "10px", padding: "24px", fontSize: "14px", lineHeight: 1.8, color: "#333", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "'Georgia', serif" }}>
+                          {result.letter}
+                        </pre>
                       </div>
-                      <p style={{ fontSize: "13px", color: "#888", marginBottom: "16px" }}>
-                        Review and personalise this letter before sending. Fill in any [brackets] with your own details.
-                      </p>
-                      <pre style={{ backgroundColor: "#f8f7f3", border: "1px solid #e5e0d8", borderRadius: "10px", padding: "24px", fontSize: "14px", lineHeight: 1.8, color: "#333", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "'Georgia', serif" }}>
-                        {result.letter}
-                      </pre>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* Save button */}
