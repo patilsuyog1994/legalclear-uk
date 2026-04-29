@@ -87,7 +87,7 @@ export default function Home() {
 
           {/* Right */}
           <div className="flex items-center gap-3">
-            <Link href="/login" className="hidden sm:inline-flex text-sm font-medium transition-colors hover:text-green-700" style={{ color: "#4a4a4a" }}>
+            <Link href="/login" className="inline-flex text-sm font-medium transition-colors hover:text-green-700" style={{ color: "#4a4a4a" }}>
               Sign in
             </Link>
             <Link
