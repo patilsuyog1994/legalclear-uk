@@ -36,6 +36,8 @@ const legalAreas = [
   { name: "Immigration", icon: "🌍", description: "Visas, rights & status" },
   { name: "Business & Contracts", icon: "📋", description: "Disputes, terms & liability" },
   { name: "Criminal Rights", icon: "🛡️", description: "Police, arrest & defence" },
+  { name: "Student Issues", icon: "🎓", description: "University, appeals & rights" },
+  { name: "Scam & Fraud Emails", icon: "📧", description: "Spot fraud, fake letters & scams" },
 ];
 
 const trustBadges = ["Free to use", "Based on UK law", "No registration required", "No data stored"];

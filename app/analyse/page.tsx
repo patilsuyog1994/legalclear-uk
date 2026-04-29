@@ -7,12 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 
 /* ─── Constants ──────────────────────────────────────────────── */
 const DEFAULT_EXAMPLES = [
-  "My landlord hasn't fixed the heating for 3 weeks",
   "I received a Section 21 notice to leave",
-  "My employer hasn't paid me for 2 months",
+  "My employer fired me without any warning",
   "I got a county court judgment (CCJ) in the post",
   "A debt collector is threatening to visit my home",
-  "My employer fired me without any warning",
 ];
 
 const AREA_EXAMPLES: Record<string, string[]> = {
@@ -21,96 +19,84 @@ const AREA_EXAMPLES: Record<string, string[]> = {
     "My landlord hasn't fixed the heating for 3 weeks",
     "My landlord is withholding my deposit without reason",
     "My landlord entered my property without permission",
-    "I've been locked out of my flat by my landlord",
-    "I received an eviction notice but I'm on a fixed-term tenancy",
   ],
   "Employment": [
     "My employer fired me without any warning",
     "My employer hasn't paid me for 2 months",
     "I was made redundant without being given any notice",
     "My employer changed my contract without my agreement",
-    "I'm being bullied at work and HR isn't helping",
-    "I was passed over for promotion due to my age",
   ],
   "Debt & Bailiffs": [
     "I got a county court judgment (CCJ) in the post",
     "A debt collector is threatening to visit my home",
     "Bailiffs came to my door for a debt I don't recognise",
     "I received a statutory demand through the post",
-    "A debt collector is calling me multiple times a day",
-    "I have multiple debts and don't know what to pay first",
   ],
   "Consumer Rights": [
     "A retailer is refusing to refund a faulty product",
     "I paid for a service that was never delivered",
-    "A company charged me twice for the same order",
     "I bought a second-hand car that had hidden faults",
-    "An online seller won't honour their return policy",
     "I was scammed by a fake online shop",
   ],
   "Fines": [
     "I received a parking charge notice from a private company",
     "I got a council tax summons in the post",
-    "I received a fixed penalty notice I disagree with",
     "I got a speeding fine but wasn't driving the car",
-    "I received a demand from HMRC for unpaid tax",
     "A TV licensing letter is demanding payment",
   ],
   "Neighbour Disputes": [
     "My neighbour's tree is damaging my property",
     "My neighbour plays loud music every night",
     "My neighbour built a fence on my land",
-    "My neighbour is blocking my right of way",
     "My neighbour's CCTV is pointing at my garden",
-    "I received a noise complaint letter from my council",
   ],
   "Benefits & Council Tax": [
     "My Universal Credit payment has been reduced with no explanation",
     "My benefits have been stopped without explanation",
     "I received a council tax bill I can't afford",
-    "I've been told I was overpaid benefits and must repay",
     "I want to appeal a PIP decision",
-    "My housing benefit claim has been refused",
   ],
   "Small Claims": [
     "A builder did poor work and won't refund my deposit",
     "Someone owes me money and is refusing to pay",
     "I want to take a company to small claims court",
     "A tradesperson damaged my property during work",
-    "A landlord owes me money after I moved out",
-    "I won a small claims case but haven't been paid",
   ],
   "Family Law": [
     "My ex-partner won't let me see my children",
     "I want to understand my rights in a divorce",
     "I received a court order from my ex-partner",
-    "My ex is taking me back to court over maintenance",
-    "I need help understanding a child arrangements order",
     "I've been served with a non-molestation order",
   ],
   "Immigration": [
     "My visa application has been refused",
     "I received a letter from the Home Office about my status",
     "My leave to remain is running out soon",
-    "My employer is questioning my right to work documents",
     "I was refused entry at the border",
-    "I want to apply for settled status",
   ],
   "Business & Contracts": [
     "A client refuses to pay an invoice",
     "I signed a contract but want to get out of it",
-    "A supplier didn't deliver what was agreed",
     "I received a cease and desist letter",
     "A customer is threatening legal action against my business",
-    "My business partner wants to dissolve our partnership",
   ],
   "Criminal Rights": [
     "I was arrested and want to know my rights",
     "Police searched my home — was this legal?",
     "I received a caution and want to know its implications",
-    "Police are investigating me but I haven't been charged",
-    "I've been given a community order I don't understand",
     "I received a court summons for a criminal matter",
+  ],
+  "Student Issues": [
+    "My university is threatening to expel me",
+    "I want to appeal my exam results",
+    "I received a disciplinary letter from my university",
+    "I'm being accused of plagiarism but I didn't cheat",
+  ],
+  "Scam & Fraud Emails": [
+    "I received an email saying I owe HMRC money urgently",
+    "Someone emailed asking for my bank details to release funds",
+    "An email says my parcel is held and I must pay a fee",
+    "I got a message from 'my bank' asking me to verify my account",
   ],
 };
 
@@ -132,6 +118,7 @@ interface AnalysisResult {
   urgencyLevel: UrgencyLevel;
   urgencyReason: string;
   summaryTitle: string;
+  keyPoints: string[];
   explanation: string;
   rights: string[];
   steps: { title: string; detail: string }[];
@@ -590,10 +577,10 @@ export default function AnalysePage() {
 
   /* ── Chat panel (reused on desktop + mobile overlay) ── */
   const ChatPanel = (
-    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#fff" }}>
+    <div style={{ width: "100%", maxWidth: "100%", height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#fff", overflow: "hidden", boxSizing: "border-box" }}>
 
       {/* Header */}
-      <div style={{ backgroundColor: "#0f6e56", padding: "0 20px", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+      <div style={{ backgroundColor: "#0f6e56", padding: "0 16px", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, minWidth: 0, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <ShieldIcon size={16} color="white" />
@@ -659,7 +646,7 @@ export default function AnalysePage() {
               )}
 
               {/* Bubble + timestamp column */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: isAI ? "flex-start" : "flex-end", maxWidth: "82%" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: isAI ? "flex-start" : "flex-end", maxWidth: "82%", minWidth: 0 }}>
                 <div
                   style={{
                     padding:         "11px 14px",
@@ -669,6 +656,8 @@ export default function AnalysePage() {
                     fontSize:        "14px",
                     lineHeight:      1.65,
                     boxShadow:       "0 1px 3px rgba(0,0,0,0.07)",
+                    wordBreak:       "break-word",
+                    overflowWrap:    "break-word",
                   }}
                 >
                   {msg.text}
@@ -785,7 +774,7 @@ export default function AnalysePage() {
       </div>
 
       {/* Input area */}
-      <div style={{ padding: "12px 14px", borderTop: "1px solid #e5e0d8", backgroundColor: "#fff", display: "flex", gap: "10px", alignItems: "flex-end", flexShrink: 0 }}>
+      <div style={{ padding: "12px 14px", borderTop: "1px solid #e5e0d8", backgroundColor: "#fff", display: "flex", gap: "10px", alignItems: "flex-end", flexShrink: 0, minWidth: 0, boxSizing: "border-box", width: "100%" }}>
         <textarea
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
@@ -882,7 +871,7 @@ export default function AnalysePage() {
 
       {/* ── Mobile chat overlay ── */}
       {mobileChatOpen && (
-        <div style={{ position: "fixed", inset: 0, top: "64px", zIndex: 100, display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "fixed", inset: 0, top: "64px", zIndex: 100, display: "flex", flexDirection: "column", width: "100vw", maxWidth: "100vw", overflow: "hidden" }}>
           {ChatPanel}
         </div>
       )}
@@ -1063,12 +1052,40 @@ export default function AnalysePage() {
                     {result.summaryTitle}
                   </h2>
 
+                  {/* Key Points highlight box */}
+                  {result.keyPoints && result.keyPoints.length > 0 && (
+                    <div style={{ backgroundColor: "#edf7f3", border: "1px solid #a8d9c8", borderRadius: "12px", padding: "18px 22px", marginBottom: "28px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#0f6e56" strokeWidth={2.2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                        <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f6e56", textTransform: "uppercase", letterSpacing: "0.06em" }}>Important — Read This First</span>
+                      </div>
+                      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+                        {result.keyPoints.map((point, i) => (
+                          <li key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                            <span style={{ flexShrink: 0, marginTop: "4px", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#0f6e56", display: "inline-block" }} />
+                            <span style={{ fontSize: "14px", lineHeight: 1.65, color: "#1c4a3a", fontWeight: 500 }}>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p style={{ margin: "14px 0 0", fontSize: "12.5px", color: "#3a7a65", borderTop: "1px solid #c0ddd4", paddingTop: "12px" }}>
+                        💬 Have further questions about this? <span style={{ fontWeight: 600 }}>Ask our AI chatbot below</span> — it already knows your situation.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Explanation */}
                   <div style={{ marginBottom: "32px" }}>
                     {result.explanation.split("\n\n").filter(Boolean).map((para, i) => (
                       <p key={i} style={{ fontSize: "15px", lineHeight: 1.75, color: "#333", marginBottom: "14px" }}>{para}</p>
                     ))}
                   </div>
+
+                  {/* Chatbot nudge after summary */}
+                  <p style={{ fontSize: "13px", color: "#888", marginBottom: "28px", marginTop: "-16px" }}>
+                    💬 Still unsure about something? <span style={{ color: "#0f6e56", fontWeight: 600 }}>Ask the chatbot below</span> — it already understands your case.
+                  </p>
 
                   {/* Your Rights */}
                   {result.rights.length > 0 && (
@@ -1165,6 +1182,39 @@ export default function AnalysePage() {
                   </div>
                 </div>
 
+                {/* ── Chat trigger button ── */}
+                {!chatOpen && (
+                  <button
+                    onClick={handleOpenChat}
+                    style={{
+                      marginTop: "16px",
+                      width: "100%",
+                      padding: "16px 24px",
+                      borderRadius: "12px",
+                      border: "none",
+                      backgroundColor: "#0f6e56",
+                      color: "#fff",
+                      fontSize: "16px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "10px",
+                      transition: "background-color 0.15s, transform 0.1s",
+                      boxShadow: "0 4px 14px rgba(15,110,86,0.3)",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#0a5242"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#0f6e56"; e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    Chat with LegalClear AI
+                  </button>
+                )}
+
                 {/* Save button */}
                 {user && (
                   <div style={{ marginTop: "20px", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -1205,40 +1255,6 @@ export default function AnalysePage() {
                     </>
                   )}
                 </div>
-
-                {/* ── Chat trigger button ── */}
-                {!chatOpen && (
-                  <button
-                    onClick={handleOpenChat}
-                    style={{
-                      marginTop: "16px",
-                      width: "100%",
-                      padding: "16px 24px",
-                      borderRadius: "12px",
-                      border: "none",
-                      backgroundColor: "#0f6e56",
-                      color: "#fff",
-                      fontSize: "16px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "10px",
-                      transition: "background-color 0.15s, transform 0.1s",
-                      boxShadow: "0 4px 14px rgba(15,110,86,0.3)",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#0a5242"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#0f6e56"; e.currentTarget.style.transform = "translateY(0)"; }}
-                  >
-                    {/* Chat bubble icon */}
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                    Chat with LegalClear AI
-                  </button>
-                )}
 
                 {/* ── Pre-Solicitor Pack button ── */}
                 {result && (

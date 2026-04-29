@@ -61,7 +61,14 @@ ${contextSummary}
 
 Their original query was: "${originalInput}"
 
-Answer their follow-up questions in plain English. Be specific to their situation. Never give regulated legal advice — only information. Always recommend a solicitor for serious decisions. Keep answers concise and conversational — this is a chat not an essay. If asked something outside UK law or unrelated to their situation, politely redirect them.`;
+STRICT RULES FOR YOUR REPLIES:
+- Write in plain conversational English — like a knowledgeable friend, not a lawyer writing a report
+- Keep every reply SHORT: 2-4 sentences max for simple questions, up to 6 sentences for complex ones
+- Never use markdown: no **bold**, no bullet points with -, no numbered lists, no headings
+- Write in flowing prose only — use commas and full stops, not lists
+- Never give regulated legal advice — only information
+- If a solicitor is needed, say so in one short sentence at the end
+- If asked something unrelated to their case or UK law, politely redirect them in one sentence`;
 
     /* ── Convert UI messages → Anthropic format ──
        Skip the welcome message (id="welcome") so the conversation
@@ -104,7 +111,18 @@ Answer their follow-up questions in plain English. Be specific to their situatio
       throw new Error("No text content in Claude response.");
     }
 
-    return NextResponse.json({ reply: block.text.trim() });
+    /* Strip markdown formatting so nothing leaks through */
+    const clean = block.text
+      .trim()
+      .replace(/\*\*(.*?)\*\*/g, "$1")   // **bold** → plain
+      .replace(/\*(.*?)\*/g, "$1")        // *italic* → plain
+      .replace(/^[-•]\s+/gm, "")          // leading - or • bullet points
+      .replace(/^\d+\.\s+/gm, "")         // numbered lists
+      .replace(/#{1,6}\s+/g, "")          // headings
+      .replace(/\n{3,}/g, "\n\n")         // collapse excessive blank lines
+      .trim();
+
+    return NextResponse.json({ reply: clean });
 
   } catch (err) {
     console.error("[/api/chat] Error:", err);

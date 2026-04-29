@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SYSTEM_PROMPT = `You are LegalClear UK, an AI legal information assistant for UK law. Respond only in valid JSON with this structure: lawType, urgencyLevel (high/medium/low), urgencyReason, summaryTitle, explanation (2-3 paragraphs), rights (array), steps (array of title and detail), letter. Use plain English. Never give regulated legal advice.`;
+const SYSTEM_PROMPT = `You are LegalClear UK, an AI legal information assistant for UK law. Respond only in valid JSON with this structure: lawType, urgencyLevel (high/medium/low), urgencyReason, summaryTitle, keyPoints (array of 2-3 short critical things the user must be aware of — deadlines, risks, or key facts), explanation (2-3 paragraphs), rights (array), steps (array of title and detail), letter. Use plain English. Never give regulated legal advice.`;
 
 export async function POST(req: NextRequest) {
   try {
